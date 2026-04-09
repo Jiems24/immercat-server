@@ -11,7 +11,7 @@ router.post("/clients", isAuthenticated, (req, res, next) => {
   ClientLead.create(req.body)
     .then((response) => res.status(201).json(response))
     .catch((err) => {
-      console.log("Error creating a client \n\n", err);
+      console.log("Error creating a client ", err);
       res.status(500).json({ message: "Error creating a client" });
     });
 });
@@ -21,7 +21,7 @@ router.get("/clients", isAuthenticated, (req, res, next) => {
   ClientLead.find({ isArchived: false })
     .then((allClients) => res.json(allClients))
     .catch((err) => {
-      console.log("Error getting the list of clients \n\n", err);
+      console.log("Error getting the list of clients ", err);
       res.status(500).json({ message: "Error getting the list of clients" });
     });
 });
@@ -48,7 +48,7 @@ router.get("/clients/:clientId", isAuthenticated, (req, res, next) => {
   ClientLead.findById(clientId)
     .then((client) => res.status(200).json(client))
     .catch((err) => {
-      console.log("Error getting the client details \n\n", err);
+      console.log("Error getting the client details ", err);
       res.status(500).json({ message: "Error getting the client details" });
     });
 });
@@ -65,7 +65,7 @@ router.put("/clients/:clientId", isAuthenticated, (req, res, next) => {
   ClientLead.findByIdAndUpdate(clientId, req.body, { new: true })
     .then((updatedClient) => res.json(updatedClient))
     .catch((err) => {
-      console.log("Error updating the client \n\n", err);
+      console.log("Error updating the client ", err);
       res.status(500).json({ message: "Error updating the client" });
     });
 });
@@ -82,8 +82,25 @@ router.put("/clients/:clientId/archive", isAuthenticated, (req, res, next) => {
   ClientLead.findByIdAndUpdate(clientId, { isArchived: true }, { new: true })
     .then((archivedClient) => res.json(archivedClient))
     .catch((err) => {
-      console.log("Error archiving the client \n\n", err);
+      console.log("Error archiving the client ", err);
       res.status(500).json({ message: "Error archiving the client" });
+    });
+});
+
+// DELETE /api/clients/:clientId - Eliminar un cliente definitivamente
+router.delete("/clients/:clientId", isAuthenticated, (req, res, next) => {
+  const { clientId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(clientId)) {
+    res.status(400).json({ message: "Specified id is not valid" });
+    return;
+  }
+
+  ClientLead.findByIdAndDelete(clientId)
+    .then(() => res.json({ message: "Client deleted successfully" }))
+    .catch((err) => {
+      console.log("Error deleting the client \n\n", err);
+      res.status(500).json({ message: "Error deleting the client" });
     });
 });
 

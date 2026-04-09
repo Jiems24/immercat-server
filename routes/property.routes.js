@@ -95,4 +95,21 @@ router.put("/properties/:propertyId/archive", isAuthenticated, (req, res, next) 
     });
 });
 
+// DELETE /api/properties/:propertyId - Eliminar un inmueble definitivamente
+router.delete("/properties/:propertyId", isAuthenticated, (req, res, next) => {
+  const { propertyId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+    res.status(400).json({ message: "Specified id is not valid" });
+    return;
+  }
+
+  Property.findByIdAndDelete(propertyId)
+    .then(() => res.json({ message: "Property deleted successfully" }))
+    .catch((err) => {
+      console.log("Error deleting the property \n\n", err);
+      res.status(500).json({ message: "Error deleting the property" });
+    });
+});
+
 module.exports = router;
