@@ -1,6 +1,6 @@
 const { Schema, model } = require("mongoose");
 
-const clientLeadSchema = new Schema(
+const ownerSchema = new Schema(
   {
     firstName: {
       type: String,
@@ -10,25 +10,18 @@ const clientLeadSchema = new Schema(
       type: String,
       required: true,
     },
-    email: {
-      type: String,
-    },
     phone: {
       type: String,
       required: true,
     },
-    demandType: {
+    email: {
       type: String,
-      enum: ["compra", "alquiler"],
     },
-    demandPropertyType: {
+    dni: {
       type: String,
-      enum: ["piso", "casa", "local", "oficina"],
+      required: true,
     },
-    demandBudget: {
-      type: Number,
-    },
-    demandZone: {
+    address: {
       type: String,
     },
     isArchived: {
@@ -41,4 +34,4 @@ const clientLeadSchema = new Schema(
   }
 );
 
-module.exports = model("ClientLead", clientLeadSchema);
+module.exports = model("Owner", ownerSchema);

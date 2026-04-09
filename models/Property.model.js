@@ -19,7 +19,7 @@ const propertySchema = new Schema(
     price: {
       type: Number,
       required: true,
-      min: 1
+      min: 1,
     },
     location: {
       type: String,
@@ -54,6 +54,10 @@ const propertySchema = new Schema(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+    },
+    realOwner: {
+      type: Schema.Types.ObjectId,
+      ref: "Owner",
     },
   },
   {
