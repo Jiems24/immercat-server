@@ -19,6 +19,7 @@ const propertySchema = new Schema(
     price: {
       type: Number,
       required: true,
+      min: 1
     },
     location: {
       type: String,

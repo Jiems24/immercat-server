@@ -8,10 +8,10 @@ const clientLeadSchema = new Schema(
     },
     email: {
       type: String,
-      required: true,
     },
     phone: {
       type: String,
+       required: true,
     },
     demandType: {
       type: String,
