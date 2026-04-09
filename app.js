@@ -27,6 +27,8 @@ app.use("/api", require("./routes/clientlead.routes"));
 
 app.use("/api", require("./routes/owner.routes"));
 
+app.use("/public", require("./routes/public.routes"));
+
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require("./error-handling")(app);
 
