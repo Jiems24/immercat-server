@@ -4,18 +4,23 @@ const clientLeadSchema = new Schema(
   {
     firstName: {
       type: String,
-      required: true,
+      required: [true, "First name is required."],
+      trim: true,
     },
     lastName: {
       type: String,
-      required: true,
+      required: [true, "Last name is required."],
+      trim: true,
     },
     email: {
       type: String,
+      lowercase: true,
+      trim: true,
     },
     phone: {
       type: String,
-      required: true,
+      required: [true, "Phone is required."],
+      trim: true,
     },
     demandType: {
       type: String,
@@ -30,10 +35,16 @@ const clientLeadSchema = new Schema(
     },
     demandZone: {
       type: String,
+      trim: true,
     },
     isArchived: {
       type: Boolean,
       default: false,
+    },
+    agency: {
+      type: Schema.Types.ObjectId,
+      ref: "Agency",
+      required: [true, "Agency is required."],
     },
   },
   {
@@ -41,4 +52,6 @@ const clientLeadSchema = new Schema(
   }
 );
 
-module.exports = model("ClientLead", clientLeadSchema);
+const ClientLead = model("ClientLead", clientLeadSchema);
+
+module.exports = ClientLead;

@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 
 const Property = require("../models/Property.model");
 
-// GET /public/properties - Listar inmuebles disponibles (público)
+// GET /public/properties - Listar inmuebles disponibles (con nombre de inmobiliaria)
 router.get("/properties", (req, res, next) => {
   const { propertyType, maxPrice } = req.query;
 
@@ -23,6 +23,7 @@ router.get("/properties", (req, res, next) => {
 
   Property.find(filter)
     .select("-address -owner -realOwner -isArchived")
+    .populate("agency", "name city")
     .then((properties) => res.json(properties))
     .catch((err) => {
       console.log("Error getting public properties \n\n", err);
@@ -30,7 +31,7 @@ router.get("/properties", (req, res, next) => {
     });
 });
 
-// GET /public/properties/:propertyId - Detalle de un inmueble (público)
+// GET /public/properties/:propertyId - Detalle público (con nombre de inmobiliaria)
 router.get("/properties/:propertyId", (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -41,6 +42,7 @@ router.get("/properties/:propertyId", (req, res, next) => {
 
   Property.findById(propertyId)
     .select("-address -owner -realOwner -isArchived")
+    .populate("agency", "name city")
     .then((property) => {
       if (!property) {
         return res.status(404).json({ message: "Property not found" });

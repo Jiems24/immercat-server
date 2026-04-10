@@ -3,12 +3,16 @@ const router = express.Router();
 const mongoose = require("mongoose");
 
 const Owner = require("../models/Owner.model");
-
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
 
-// POST /api/owners - Crear un propietario
+// POST /api/owners - Crear propietario (asigna agency desde el token)
 router.post("/owners", isAuthenticated, (req, res, next) => {
-  Owner.create(req.body)
+  const newOwner = {
+    ...req.body,
+    agency: req.payload.agency,
+  };
+
+  Owner.create(newOwner)
     .then((response) => res.status(201).json(response))
     .catch((err) => {
       console.log("Error creating an owner \n\n", err);
@@ -16,9 +20,9 @@ router.post("/owners", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/owners - Listar propietarios activos
+// GET /api/owners - Listar activos de la agency del usuario
 router.get("/owners", isAuthenticated, (req, res, next) => {
-  Owner.find({ isArchived: false })
+  Owner.find({ isArchived: false, agency: req.payload.agency })
     .then((allOwners) => res.json(allOwners))
     .catch((err) => {
       console.log("Error getting the list of owners \n\n", err);
@@ -26,9 +30,9 @@ router.get("/owners", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/owners/archived - Listar propietarios archivados
+// GET /api/owners/archived - Listar archivados de la agency del usuario
 router.get("/owners/archived", isAuthenticated, (req, res, next) => {
-  Owner.find({ isArchived: true })
+  Owner.find({ isArchived: true, agency: req.payload.agency })
     .then((archivedOwners) => res.json(archivedOwners))
     .catch((err) => {
       console.log("Error getting archived owners \n\n", err);
@@ -36,7 +40,7 @@ router.get("/owners/archived", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/owners/:ownerId - Detalle de un propietario
+// GET /api/owners/:ownerId - Detalle (solo si pertenece a su agency)
 router.get("/owners/:ownerId", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -45,15 +49,20 @@ router.get("/owners/:ownerId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Owner.findById(ownerId)
-    .then((owner) => res.status(200).json(owner))
+  Owner.findOne({ _id: ownerId, agency: req.payload.agency })
+    .then((owner) => {
+      if (!owner) {
+        return res.status(404).json({ message: "Owner not found" });
+      }
+      res.status(200).json(owner);
+    })
     .catch((err) => {
       console.log("Error getting the owner details \n\n", err);
       res.status(500).json({ message: "Error getting the owner details" });
     });
 });
 
-// PUT /api/owners/:ownerId - Editar un propietario
+// PUT /api/owners/:ownerId - Editar (solo si pertenece a su agency)
 router.put("/owners/:ownerId", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -62,15 +71,24 @@ router.put("/owners/:ownerId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Owner.findByIdAndUpdate(ownerId, req.body, { new: true })
-    .then((updatedOwner) => res.json(updatedOwner))
+  Owner.findOneAndUpdate(
+    { _id: ownerId, agency: req.payload.agency },
+    req.body,
+    { new: true }
+  )
+    .then((updatedOwner) => {
+      if (!updatedOwner) {
+        return res.status(404).json({ message: "Owner not found" });
+      }
+      res.json(updatedOwner);
+    })
     .catch((err) => {
       console.log("Error updating the owner \n\n", err);
       res.status(500).json({ message: "Error updating the owner" });
     });
 });
 
-// PUT /api/owners/:ownerId/archive - Archivar un propietario
+// PUT /api/owners/:ownerId/archive - Archivar (solo si pertenece a su agency)
 router.put("/owners/:ownerId/archive", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -79,15 +97,24 @@ router.put("/owners/:ownerId/archive", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Owner.findByIdAndUpdate(ownerId, { isArchived: true }, { new: true })
-    .then((archivedOwner) => res.json(archivedOwner))
+  Owner.findOneAndUpdate(
+    { _id: ownerId, agency: req.payload.agency },
+    { isArchived: true },
+    { new: true }
+  )
+    .then((archivedOwner) => {
+      if (!archivedOwner) {
+        return res.status(404).json({ message: "Owner not found" });
+      }
+      res.json(archivedOwner);
+    })
     .catch((err) => {
       console.log("Error archiving the owner \n\n", err);
       res.status(500).json({ message: "Error archiving the owner" });
     });
 });
 
-// DELETE /api/owners/:ownerId - Eliminar un propietario definitivamente
+// DELETE /api/owners/:ownerId - Eliminar (solo si pertenece a su agency)
 router.delete("/owners/:ownerId", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -96,8 +123,13 @@ router.delete("/owners/:ownerId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Owner.findByIdAndDelete(ownerId)
-    .then(() => res.json({ message: "Owner deleted successfully" }))
+  Owner.findOneAndDelete({ _id: ownerId, agency: req.payload.agency })
+    .then((deletedOwner) => {
+      if (!deletedOwner) {
+        return res.status(404).json({ message: "Owner not found" });
+      }
+      res.json({ message: "Owner deleted successfully" });
+    })
     .catch((err) => {
       console.log("Error deleting the owner \n\n", err);
       res.status(500).json({ message: "Error deleting the owner" });

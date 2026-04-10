@@ -4,28 +4,31 @@ const propertySchema = new Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: [true, "Title is required."],
+      trim: true,
     },
     propertyType: {
       type: String,
       enum: ["piso", "casa", "local", "oficina"],
-      required: true,
+      required: [true, "Property type is required."],
     },
     operationType: {
       type: String,
       enum: ["venta", "alquiler"],
-      required: true,
+      required: [true, "Operation type is required."],
     },
     price: {
       type: Number,
-      required: true,
+      required: [true, "Price is required."],
       min: 1,
     },
     location: {
       type: String,
+      trim: true,
     },
     address: {
       type: String,
+      trim: true,
     },
     squareMeters: {
       type: Number,
@@ -38,6 +41,7 @@ const propertySchema = new Schema(
     },
     description: {
       type: String,
+      trim: true,
     },
     images: {
       type: [String],
@@ -59,10 +63,17 @@ const propertySchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Owner",
     },
+    agency: {
+      type: Schema.Types.ObjectId,
+      ref: "Agency",
+      required: [true, "Agency is required."],
+    },
   },
   {
     timestamps: true,
   }
 );
 
-module.exports = model("Property", propertySchema);
+const Property = model("Property", propertySchema);
+
+module.exports = Property;

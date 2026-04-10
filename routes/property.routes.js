@@ -3,14 +3,14 @@ const router = express.Router();
 const mongoose = require("mongoose");
 
 const Property = require("../models/Property.model");
-
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
 
-// POST /api/properties - Crear un inmueble
+// POST /api/properties - Crear inmueble (asigna owner y agency desde el token)
 router.post("/properties", isAuthenticated, (req, res, next) => {
   const newProperty = {
     ...req.body,
     owner: req.payload._id,
+    agency: req.payload.agency,
   };
 
   Property.create(newProperty)
@@ -21,10 +21,12 @@ router.post("/properties", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/properties - Listar inmuebles activos
+// GET /api/properties - Listar activos de la agency del usuario
 router.get("/properties", isAuthenticated, (req, res, next) => {
-  Property.find({ isArchived: false })
+  Property.find({ isArchived: false, agency: req.payload.agency })
     .populate("owner", "name email")
+    .populate("realOwner", "firstName lastName")
+    .populate("agency", "name city")
     .then((allProperties) => res.json(allProperties))
     .catch((err) => {
       console.log("Error getting the list of properties \n\n", err);
@@ -32,10 +34,12 @@ router.get("/properties", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/properties/archived - Listar inmuebles archivados (historial)
+// GET /api/properties/archived - Listar archivados de la agency del usuario
 router.get("/properties/archived", isAuthenticated, (req, res, next) => {
-  Property.find({ isArchived: true })
+  Property.find({ isArchived: true, agency: req.payload.agency })
     .populate("owner", "name email")
+    .populate("realOwner", "firstName lastName")
+    .populate("agency", "name city")
     .then((archivedProperties) => res.json(archivedProperties))
     .catch((err) => {
       console.log("Error getting archived properties \n\n", err);
@@ -43,7 +47,7 @@ router.get("/properties/archived", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/properties/:propertyId - Detalle de un inmueble
+// GET /api/properties/:propertyId - Detalle (solo si pertenece a su agency)
 router.get("/properties/:propertyId", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -52,16 +56,23 @@ router.get("/properties/:propertyId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Property.findById(propertyId)
+  Property.findOne({ _id: propertyId, agency: req.payload.agency })
     .populate("owner", "name email")
-    .then((property) => res.status(200).json(property))
+    .populate("realOwner", "firstName lastName phone email")
+    .populate("agency", "name city")
+    .then((property) => {
+      if (!property) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      res.status(200).json(property);
+    })
     .catch((err) => {
       console.log("Error getting the property details \n\n", err);
       res.status(500).json({ message: "Error getting the property details" });
     });
 });
 
-// PUT /api/properties/:propertyId - Editar un inmueble
+// PUT /api/properties/:propertyId - Editar (solo si pertenece a su agency)
 router.put("/properties/:propertyId", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -70,15 +81,24 @@ router.put("/properties/:propertyId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Property.findByIdAndUpdate(propertyId, req.body, { new: true })
-    .then((updatedProperty) => res.json(updatedProperty))
+  Property.findOneAndUpdate(
+    { _id: propertyId, agency: req.payload.agency },
+    req.body,
+    { new: true }
+  )
+    .then((updatedProperty) => {
+      if (!updatedProperty) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      res.json(updatedProperty);
+    })
     .catch((err) => {
       console.log("Error updating the property \n\n", err);
       res.status(500).json({ message: "Error updating the property" });
     });
 });
 
-// PUT /api/properties/:propertyId/archive - Archivar un inmueble
+// PUT /api/properties/:propertyId/archive - Archivar (solo si pertenece a su agency)
 router.put("/properties/:propertyId/archive", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -87,15 +107,24 @@ router.put("/properties/:propertyId/archive", isAuthenticated, (req, res, next) 
     return;
   }
 
-  Property.findByIdAndUpdate(propertyId, { isArchived: true }, { new: true })
-    .then((archivedProperty) => res.json(archivedProperty))
+  Property.findOneAndUpdate(
+    { _id: propertyId, agency: req.payload.agency },
+    { isArchived: true },
+    { new: true }
+  )
+    .then((archivedProperty) => {
+      if (!archivedProperty) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      res.json(archivedProperty);
+    })
     .catch((err) => {
       console.log("Error archiving the property \n\n", err);
       res.status(500).json({ message: "Error archiving the property" });
     });
 });
 
-// DELETE /api/properties/:propertyId - Eliminar un inmueble definitivamente
+// DELETE /api/properties/:propertyId - Eliminar (solo si pertenece a su agency)
 router.delete("/properties/:propertyId", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -104,8 +133,13 @@ router.delete("/properties/:propertyId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  Property.findByIdAndDelete(propertyId)
-    .then(() => res.json({ message: "Property deleted successfully" }))
+  Property.findOneAndDelete({ _id: propertyId, agency: req.payload.agency })
+    .then((deletedProperty) => {
+      if (!deletedProperty) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      res.json({ message: "Property deleted successfully" });
+    })
     .catch((err) => {
       console.log("Error deleting the property \n\n", err);
       res.status(500).json({ message: "Error deleting the property" });

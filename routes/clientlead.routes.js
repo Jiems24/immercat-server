@@ -3,32 +3,36 @@ const router = express.Router();
 const mongoose = require("mongoose");
 
 const ClientLead = require("../models/ClientLead.model");
-
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
 
-// POST /api/clients - Crear un cliente
+// POST /api/clients - Crear cliente (asigna agency desde el token)
 router.post("/clients", isAuthenticated, (req, res, next) => {
-  ClientLead.create(req.body)
+  const newClient = {
+    ...req.body,
+    agency: req.payload.agency,
+  };
+
+  ClientLead.create(newClient)
     .then((response) => res.status(201).json(response))
     .catch((err) => {
-      console.log("Error creating a client ", err);
+      console.log("Error creating a client \n\n", err);
       res.status(500).json({ message: "Error creating a client" });
     });
 });
 
-// GET /api/clients - Listar clientes activos
+// GET /api/clients - Listar activos de la agency del usuario
 router.get("/clients", isAuthenticated, (req, res, next) => {
-  ClientLead.find({ isArchived: false })
+  ClientLead.find({ isArchived: false, agency: req.payload.agency })
     .then((allClients) => res.json(allClients))
     .catch((err) => {
-      console.log("Error getting the list of clients ", err);
+      console.log("Error getting the list of clients \n\n", err);
       res.status(500).json({ message: "Error getting the list of clients" });
     });
 });
 
-// GET /api/clients/archived - Listar clientes archivados (historial)
+// GET /api/clients/archived - Listar archivados de la agency del usuario
 router.get("/clients/archived", isAuthenticated, (req, res, next) => {
-  ClientLead.find({ isArchived: true })
+  ClientLead.find({ isArchived: true, agency: req.payload.agency })
     .then((archivedClients) => res.json(archivedClients))
     .catch((err) => {
       console.log("Error getting archived clients \n\n", err);
@@ -36,7 +40,7 @@ router.get("/clients/archived", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/clients/:clientId - Detalle de un cliente
+// GET /api/clients/:clientId - Detalle (solo si pertenece a su agency)
 router.get("/clients/:clientId", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -45,15 +49,20 @@ router.get("/clients/:clientId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  ClientLead.findById(clientId)
-    .then((client) => res.status(200).json(client))
+  ClientLead.findOne({ _id: clientId, agency: req.payload.agency })
+    .then((client) => {
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      res.status(200).json(client);
+    })
     .catch((err) => {
-      console.log("Error getting the client details ", err);
+      console.log("Error getting the client details \n\n", err);
       res.status(500).json({ message: "Error getting the client details" });
     });
 });
 
-// PUT /api/clients/:clientId - Editar un cliente
+// PUT /api/clients/:clientId - Editar (solo si pertenece a su agency)
 router.put("/clients/:clientId", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -62,15 +71,24 @@ router.put("/clients/:clientId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  ClientLead.findByIdAndUpdate(clientId, req.body, { new: true })
-    .then((updatedClient) => res.json(updatedClient))
+  ClientLead.findOneAndUpdate(
+    { _id: clientId, agency: req.payload.agency },
+    req.body,
+    { new: true }
+  )
+    .then((updatedClient) => {
+      if (!updatedClient) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      res.json(updatedClient);
+    })
     .catch((err) => {
-      console.log("Error updating the client ", err);
+      console.log("Error updating the client \n\n", err);
       res.status(500).json({ message: "Error updating the client" });
     });
 });
 
-// PUT /api/clients/:clientId/archive - Archivar un cliente
+// PUT /api/clients/:clientId/archive - Archivar (solo si pertenece a su agency)
 router.put("/clients/:clientId/archive", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -79,15 +97,24 @@ router.put("/clients/:clientId/archive", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  ClientLead.findByIdAndUpdate(clientId, { isArchived: true }, { new: true })
-    .then((archivedClient) => res.json(archivedClient))
+  ClientLead.findOneAndUpdate(
+    { _id: clientId, agency: req.payload.agency },
+    { isArchived: true },
+    { new: true }
+  )
+    .then((archivedClient) => {
+      if (!archivedClient) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      res.json(archivedClient);
+    })
     .catch((err) => {
-      console.log("Error archiving the client ", err);
+      console.log("Error archiving the client \n\n", err);
       res.status(500).json({ message: "Error archiving the client" });
     });
 });
 
-// DELETE /api/clients/:clientId - Eliminar un cliente definitivamente
+// DELETE /api/clients/:clientId - Eliminar (solo si pertenece a su agency)
 router.delete("/clients/:clientId", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -96,8 +123,13 @@ router.delete("/clients/:clientId", isAuthenticated, (req, res, next) => {
     return;
   }
 
-  ClientLead.findByIdAndDelete(clientId)
-    .then(() => res.json({ message: "Client deleted successfully" }))
+  ClientLead.findOneAndDelete({ _id: clientId, agency: req.payload.agency })
+    .then((deletedClient) => {
+      if (!deletedClient) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      res.json({ message: "Client deleted successfully" });
+    })
     .catch((err) => {
       console.log("Error deleting the client \n\n", err);
       res.status(500).json({ message: "Error deleting the client" });
