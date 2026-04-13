@@ -6,15 +6,21 @@ const Property = require("../models/Property.model");
 
 // GET /public/properties - Listar inmuebles disponibles (con nombre de inmobiliaria)
 router.get("/properties", (req, res, next) => {
-  const { propertyType, maxPrice } = req.query;
+  const { propertyType, operationType, maxPrice } = req.query;
 
   const filter = {
     isArchived: false,
     status: "disponible",
   };
 
+  // propertyType puede ser un valor o varios separados por coma: "piso,casa"
   if (propertyType) {
-    filter.propertyType = propertyType;
+    const types = propertyType.split(",");
+    filter.propertyType = { $in: types };
+  }
+
+  if (operationType) {
+    filter.operationType = operationType;
   }
 
   if (maxPrice) {
