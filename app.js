@@ -31,6 +31,8 @@ app.use("/public", require("./routes/public.routes"));
 
 app.use("/api", require("./routes/agency.routes"));
 
+app.use("/api", require("./routes/ai.routes"));
+
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require("./error-handling")(app);
 
