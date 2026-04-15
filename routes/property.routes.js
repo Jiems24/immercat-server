@@ -4,13 +4,17 @@ const mongoose = require("mongoose");
 
 const Property = require("../models/Property.model");
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
+const uploadImages = require("../config/cloudinary.config.js"); // NUEVO
 
-// POST /api/properties - Crear inmueble (asigna owner y agency desde el token)
-router.post("/properties", isAuthenticated, (req, res, next) => {
+// POST /api/properties - Crear inmueble
+router.post("/properties", isAuthenticated, uploadImages.array("images", 4), (req, res, next) => {
+  const imageUrls = req.files ? req.files.map((file) => file.path) : [];
+
   const newProperty = {
     ...req.body,
     owner: req.payload._id,
     agency: req.payload.agency,
+    images: imageUrls,
   };
 
   Property.create(newProperty)
@@ -21,7 +25,7 @@ router.post("/properties", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/properties - Listar activos de la agency del usuario
+// GET /api/properties - Listar activos
 router.get("/properties", isAuthenticated, (req, res, next) => {
   Property.find({ isArchived: false, agency: req.payload.agency })
     .populate("owner", "name email")
@@ -34,7 +38,7 @@ router.get("/properties", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/properties/archived - Listar archivados de la agency del usuario
+// GET /api/properties/archived - Listar archivados
 router.get("/properties/archived", isAuthenticated, (req, res, next) => {
   Property.find({ isArchived: true, agency: req.payload.agency })
     .populate("owner", "name email")
@@ -47,7 +51,7 @@ router.get("/properties/archived", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/properties/:propertyId - Detalle (solo si pertenece a su agency)
+// GET /api/properties/:propertyId - Detalle
 router.get("/properties/:propertyId", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -72,8 +76,8 @@ router.get("/properties/:propertyId", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/properties/:propertyId - Editar (solo si pertenece a su agency)
-router.put("/properties/:propertyId", isAuthenticated, (req, res, next) => {
+// PUT /api/properties/:propertyId - Editar
+router.put("/properties/:propertyId", isAuthenticated, uploadImages.array("images", 4), (req, res, next) => {
   const { propertyId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(propertyId)) {
@@ -81,9 +85,15 @@ router.put("/properties/:propertyId", isAuthenticated, (req, res, next) => {
     return;
   }
 
+  const imageUrls = req.files ? req.files.map((file) => file.path) : [];
+  const updateData = { ...req.body };
+  if (imageUrls.length > 0) {
+    updateData.images = imageUrls;
+  }
+
   Property.findOneAndUpdate(
     { _id: propertyId, agency: req.payload.agency },
-    req.body,
+    updateData,
     { new: true }
   )
     .then((updatedProperty) => {
@@ -98,7 +108,7 @@ router.put("/properties/:propertyId", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/properties/:propertyId/archive - Archivar (solo si pertenece a su agency)
+// PUT /api/properties/:propertyId/archive - Archivar
 router.put("/properties/:propertyId/archive", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
@@ -124,7 +134,7 @@ router.put("/properties/:propertyId/archive", isAuthenticated, (req, res, next) 
     });
 });
 
-// DELETE /api/properties/:propertyId - Eliminar (solo si pertenece a su agency)
+// DELETE /api/properties/:propertyId - Eliminar
 router.delete("/properties/:propertyId", isAuthenticated, (req, res, next) => {
   const { propertyId } = req.params;
 
