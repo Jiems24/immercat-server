@@ -6,20 +6,20 @@ const mongoose = require("mongoose");
 // If no env has been set, we dynamically set it to whatever the folder name was upon the creation of the app
 
 const MONGO_URI =
-  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/immercat-server";
+    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/immercat-server";
 
-  async function connectDB() {
-  if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
-    console.log("MongoDB connection already established or in progress.");
-    return;
-  }
+async function connectDB() {
+    if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+        console.log("MongoDB connection already established or in progress.");
+        return;
+    }
 
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log("MongoDB connected");
-  } catch (err) {
-    console.error("MongoDB connection error", err);
-  }
+    try {
+        await mongoose.connect(MONGO_URI);
+        console.log("MongoDB connected");
+    } catch (err) {
+        console.error("MongoDB connection error", err);
+    }
 }
 
 module.exports = { connectDB };
