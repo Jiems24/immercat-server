@@ -46,15 +46,6 @@ const clientLeadSchema = new Schema(
       ref: "Agency",
       required: [true, "Agency is required."],
     },
-    notes: {
-  type: [
-    {
-      text: { type: String, required: true },
-      createdAt: { type: Date, default: Date.now },
-    }
-  ],
-  default: [],
-},
   },
   {
     timestamps: true,
