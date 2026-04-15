@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 
 const Property = require("../models/Property.model");
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
-const uploadImages = require("../config/cloudinary.config.js"); // NUEVO
+const uploadImages = require("../config/cloudinary.config.js");
 
 // POST /api/properties - Crear inmueble
 router.post("/properties", isAuthenticated, uploadImages.array("images", 4), (req, res, next) => {
@@ -131,6 +131,34 @@ router.put("/properties/:propertyId/archive", isAuthenticated, (req, res, next) 
     .catch((err) => {
       console.log("Error archiving the property \n\n", err);
       res.status(500).json({ message: "Error archiving the property" });
+    });
+});
+
+// PUT /api/properties/:propertyId/notes - Añadir nota
+router.put("/properties/:propertyId/notes", isAuthenticated, (req, res, next) => {
+  const { propertyId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+    res.status(400).json({ message: "Specified id is not valid" });
+    return;
+  }
+
+  const { notes } = req.body;
+
+  Property.findOneAndUpdate(
+    { _id: propertyId, agency: req.payload.agency },
+    { notes },
+    { new: true }
+  )
+    .then((updatedProperty) => {
+      if (!updatedProperty) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      res.json(updatedProperty);
+    })
+    .catch((err) => {
+      console.log("Error updating notes \n\n", err);
+      res.status(500).json({ message: "Error updating notes" });
     });
 });
 

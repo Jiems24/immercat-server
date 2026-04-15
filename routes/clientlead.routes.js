@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const ClientLead = require("../models/ClientLead.model");
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
 
-// POST /api/clients - Crear cliente (asigna agency desde el token)
+// POST /api/clients - Crear cliente
 router.post("/clients", isAuthenticated, (req, res, next) => {
   const newClient = {
     ...req.body,
@@ -20,7 +20,7 @@ router.post("/clients", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/clients - Listar activos de la agency del usuario
+// GET /api/clients - Listar activos
 router.get("/clients", isAuthenticated, (req, res, next) => {
   ClientLead.find({ isArchived: false, agency: req.payload.agency })
     .then((allClients) => res.json(allClients))
@@ -30,7 +30,7 @@ router.get("/clients", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/clients/archived - Listar archivados de la agency del usuario
+// GET /api/clients/archived - Listar archivados
 router.get("/clients/archived", isAuthenticated, (req, res, next) => {
   ClientLead.find({ isArchived: true, agency: req.payload.agency })
     .then((archivedClients) => res.json(archivedClients))
@@ -40,7 +40,7 @@ router.get("/clients/archived", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/clients/:clientId - Detalle (solo si pertenece a su agency)
+// GET /api/clients/:clientId - Detalle
 router.get("/clients/:clientId", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -62,7 +62,7 @@ router.get("/clients/:clientId", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/clients/:clientId - Editar (solo si pertenece a su agency)
+// PUT /api/clients/:clientId - Editar
 router.put("/clients/:clientId", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -88,7 +88,7 @@ router.put("/clients/:clientId", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/clients/:clientId/archive - Archivar (solo si pertenece a su agency)
+// PUT /api/clients/:clientId/archive - Archivar
 router.put("/clients/:clientId/archive", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
@@ -114,7 +114,35 @@ router.put("/clients/:clientId/archive", isAuthenticated, (req, res, next) => {
     });
 });
 
-// DELETE /api/clients/:clientId - Eliminar (solo si pertenece a su agency)
+// PUT /api/clients/:clientId/notes - Añadir nota // NUEVO
+router.put("/clients/:clientId/notes", isAuthenticated, (req, res, next) => {
+  const { clientId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(clientId)) {
+    res.status(400).json({ message: "Specified id is not valid" });
+    return;
+  }
+
+  const { notes } = req.body;
+
+  ClientLead.findOneAndUpdate(
+    { _id: clientId, agency: req.payload.agency },
+    { notes },
+    { new: true }
+  )
+    .then((updatedClient) => {
+      if (!updatedClient) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      res.json(updatedClient);
+    })
+    .catch((err) => {
+      console.log("Error updating notes \n\n", err);
+      res.status(500).json({ message: "Error updating notes" });
+    });
+});
+
+// DELETE /api/clients/:clientId - Eliminar
 router.delete("/clients/:clientId", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 
