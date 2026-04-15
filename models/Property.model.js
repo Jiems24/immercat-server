@@ -69,9 +69,14 @@ const propertySchema = new Schema(
       required: [true, "Agency is required."],
     },
     notes: {
-      type: [String],
-      default: [],
-    },
+  type: [
+    {
+      text: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now },
+    }
+  ],
+  default: [],
+},
   },
   {
     timestamps: true,
