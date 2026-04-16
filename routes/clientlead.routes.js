@@ -22,8 +22,23 @@ router.post("/clients", isAuthenticated, (req, res, next) => {
 
 // GET /api/clients - Listar activos
 router.get("/clients", isAuthenticated, (req, res, next) => {
-  ClientLead.find({ isArchived: false, agency: req.payload.agency })
-    .then((allClients) => res.json(allClients))
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const filter = { isArchived: false, agency: req.payload.agency };
+
+  Promise.all([
+    ClientLead.find(filter).skip(skip).limit(limit),
+    ClientLead.countDocuments(filter)
+  ])
+    .then(([clients, total]) => {
+      res.json({
+        clients,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting the list of clients \n\n", err);
       res.status(500).json({ message: "Error getting the list of clients" });
@@ -32,8 +47,23 @@ router.get("/clients", isAuthenticated, (req, res, next) => {
 
 // GET /api/clients/archived - Listar archivados
 router.get("/clients/archived", isAuthenticated, (req, res, next) => {
-  ClientLead.find({ isArchived: true, agency: req.payload.agency })
-    .then((archivedClients) => res.json(archivedClients))
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const filter = { isArchived: true, agency: req.payload.agency };
+
+  Promise.all([
+    ClientLead.find(filter).skip(skip).limit(limit),
+    ClientLead.countDocuments(filter)
+  ])
+    .then(([clients, total]) => {
+      res.json({
+        clients,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting archived clients \n\n", err);
       res.status(500).json({ message: "Error getting archived clients" });
@@ -114,7 +144,7 @@ router.put("/clients/:clientId/archive", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/clients/:clientId/notes - Añadir nota // NUEVO
+// PUT /api/clients/:clientId/notes - Añadir nota
 router.put("/clients/:clientId/notes", isAuthenticated, (req, res, next) => {
   const { clientId } = req.params;
 

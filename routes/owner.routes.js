@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const Owner = require("../models/Owner.model");
 const { isAuthenticated } = require("../middleware/jwt.middleware.js");
 
-// POST /api/owners - Crear propietario (asigna agency desde el token)
+// POST /api/owners - Crear propietario
 router.post("/owners", isAuthenticated, (req, res, next) => {
   const newOwner = {
     ...req.body,
@@ -20,27 +20,57 @@ router.post("/owners", isAuthenticated, (req, res, next) => {
     });
 });
 
-// GET /api/owners - Listar activos de la agency del usuario
+// GET /api/owners - Listar activos
 router.get("/owners", isAuthenticated, (req, res, next) => {
-  Owner.find({ isArchived: false, agency: req.payload.agency })
-    .then((allOwners) => res.json(allOwners))
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const filter = { isArchived: false, agency: req.payload.agency };
+
+  Promise.all([
+    Owner.find(filter).skip(skip).limit(limit),
+    Owner.countDocuments(filter)
+  ])
+    .then(([owners, total]) => {
+      res.json({
+        owners,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting the list of owners \n\n", err);
       res.status(500).json({ message: "Error getting the list of owners" });
     });
 });
 
-// GET /api/owners/archived - Listar archivados de la agency del usuario
+// GET /api/owners/archived - Listar archivados
 router.get("/owners/archived", isAuthenticated, (req, res, next) => {
-  Owner.find({ isArchived: true, agency: req.payload.agency })
-    .then((archivedOwners) => res.json(archivedOwners))
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const filter = { isArchived: true, agency: req.payload.agency };
+
+  Promise.all([
+    Owner.find(filter).skip(skip).limit(limit),
+    Owner.countDocuments(filter)
+  ])
+    .then(([owners, total]) => {
+      res.json({
+        owners,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting archived owners \n\n", err);
       res.status(500).json({ message: "Error getting archived owners" });
     });
 });
 
-// GET /api/owners/:ownerId - Detalle (solo si pertenece a su agency)
+// GET /api/owners/:ownerId - Detalle
 router.get("/owners/:ownerId", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -62,7 +92,7 @@ router.get("/owners/:ownerId", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/owners/:ownerId - Editar (solo si pertenece a su agency)
+// PUT /api/owners/:ownerId - Editar
 router.put("/owners/:ownerId", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -88,7 +118,7 @@ router.put("/owners/:ownerId", isAuthenticated, (req, res, next) => {
     });
 });
 
-// PUT /api/owners/:ownerId/archive - Archivar (solo si pertenece a su agency)
+// PUT /api/owners/:ownerId/archive - Archivar
 router.put("/owners/:ownerId/archive", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 
@@ -114,7 +144,7 @@ router.put("/owners/:ownerId/archive", isAuthenticated, (req, res, next) => {
     });
 });
 
-// DELETE /api/owners/:ownerId - Eliminar (solo si pertenece a su agency)
+// DELETE /api/owners/:ownerId - Eliminar
 router.delete("/owners/:ownerId", isAuthenticated, (req, res, next) => {
   const { ownerId } = req.params;
 

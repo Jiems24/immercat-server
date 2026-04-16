@@ -4,16 +4,18 @@ const mongoose = require("mongoose");
 
 const Property = require("../models/Property.model");
 
-// GET /public/properties - Listar inmuebles disponibles (con nombre de inmobiliaria)
+// GET /public/properties - Listar inmuebles disponibles
 router.get("/properties", (req, res, next) => {
   const { propertyType, operationType, maxPrice } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
 
   const filter = {
     isArchived: false,
     status: "disponible",
   };
 
-  // propertyType puede ser un valor o varios separados por coma: "piso,casa"
   if (propertyType) {
     const types = propertyType.split(",");
     filter.propertyType = { $in: types };
@@ -27,17 +29,28 @@ router.get("/properties", (req, res, next) => {
     filter.price = { $lte: Number(maxPrice) };
   }
 
-  Property.find(filter)
-    .select("-address -owner -realOwner -isArchived")
-    .populate("agency", "name city")
-    .then((properties) => res.json(properties))
+  Promise.all([
+    Property.find(filter)
+      .select("-address -owner -realOwner -isArchived")
+      .populate("agency", "name city")
+      .skip(skip)
+      .limit(limit),
+    Property.countDocuments(filter)
+  ])
+    .then(([properties, total]) => {
+      res.json({
+        properties,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting public properties \n\n", err);
       res.status(500).json({ message: "Error getting public properties" });
     });
 });
 
-// GET /public/properties/:propertyId - Detalle público (con nombre de inmobiliaria)
+// GET /public/properties/:propertyId - Detalle público
 router.get("/properties/:propertyId", (req, res, next) => {
   const { propertyId } = req.params;
 

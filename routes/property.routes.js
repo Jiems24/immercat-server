@@ -27,11 +27,28 @@ router.post("/properties", isAuthenticated, uploadImages.array("images", 4), (re
 
 // GET /api/properties - Listar activos
 router.get("/properties", isAuthenticated, (req, res, next) => {
-  Property.find({ isArchived: false, agency: req.payload.agency })
-    .populate("owner", "name email")
-    .populate("realOwner", "firstName lastName")
-    .populate("agency", "name city")
-    .then((allProperties) => res.json(allProperties))
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const filter = { isArchived: false, agency: req.payload.agency };
+
+  Promise.all([
+    Property.find(filter)
+      .populate("owner", "name email")
+      .populate("realOwner", "firstName lastName")
+      .populate("agency", "name city")
+      .skip(skip)
+      .limit(limit),
+    Property.countDocuments(filter)
+  ])
+    .then(([properties, total]) => {
+      res.json({
+        properties,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting the list of properties \n\n", err);
       res.status(500).json({ message: "Error getting the list of properties" });
@@ -40,11 +57,28 @@ router.get("/properties", isAuthenticated, (req, res, next) => {
 
 // GET /api/properties/archived - Listar archivados
 router.get("/properties/archived", isAuthenticated, (req, res, next) => {
-  Property.find({ isArchived: true, agency: req.payload.agency })
-    .populate("owner", "name email")
-    .populate("realOwner", "firstName lastName")
-    .populate("agency", "name city")
-    .then((archivedProperties) => res.json(archivedProperties))
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const filter = { isArchived: true, agency: req.payload.agency };
+
+  Promise.all([
+    Property.find(filter)
+      .populate("owner", "name email")
+      .populate("realOwner", "firstName lastName")
+      .populate("agency", "name city")
+      .skip(skip)
+      .limit(limit),
+    Property.countDocuments(filter)
+  ])
+    .then(([properties, total]) => {
+      res.json({
+        properties,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    })
     .catch((err) => {
       console.log("Error getting archived properties \n\n", err);
       res.status(500).json({ message: "Error getting archived properties" });
