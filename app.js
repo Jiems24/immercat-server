@@ -45,6 +45,8 @@ app.use("/api", require("./routes/ai.routes"));
 
 app.use("/api", require("./routes/linkednote.routes"));
 
+app.use("/api", require("./routes/stats.routes"));
+
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require("./error-handling")(app);
 
